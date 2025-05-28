@@ -10,7 +10,7 @@ from typing import Optional
 
 import torch
 from internvl.model import load_model_and_tokenizer
-from internvl.train.dataset import build_transform, dynamic_preprocess
+from internvl.train.dataset import build_transform, dynamic_preprocess, dynamic_preprocess2
 from PIL import Image
 from textvqa_eval import TextVQAAccuracyEvaluator
 from tqdm import tqdm
@@ -253,11 +253,13 @@ class VQADataset(torch.utils.data.Dataset):
 
         image = Image.open(image).convert('RGB')
         if self.dynamic_image_size:
-            images = dynamic_preprocess(image, image_size=self.input_size,
+            images, target_aspect_ratio = dynamic_preprocess(image, image_size=self.input_size,
                                         use_thumbnail=self.use_thumbnail,
                                         max_num=self.max_num)
         else:
             images = [image]
+        images = images + dynamic_preprocess2(image, min_num=2, max_num=10,
+                                        image_size=self.input_size, use_thumbnail=True, prior_aspect_ratio=target_aspect_ratio)
         pixel_values = [self.transform(image) for image in images]
         pixel_values = torch.stack(pixel_values)
         if len(self.prompt) != 0:
